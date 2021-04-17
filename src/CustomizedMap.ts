@@ -1,5 +1,13 @@
 import { GeoFeatures } from "./interfaces";
 
+declare global {
+  interface Window {
+    MyNamespace: any;
+  }
+}
+
+window.MyNamespace = window.MyNamespace || {};
+
 export class CustomizedMap {
   private googleMap: google.maps.Map;
   constructor(divId: string) {
@@ -12,8 +20,14 @@ export class CustomizedMap {
     });
   }
 
-  addPin(geoCord: GeoFeatures): void {
-    const { y: lat, x: lng } = geoCord.geometry;
+  clickAction(lat, lng) {
+    console.log("position");
+    console.log(lat);
+    console.log(lng);
+  }
+
+  addPin(geoCoord: GeoFeatures): void {
+    const { y: lat, x: lng } = geoCoord.geometry;
     const marker = new google.maps.Marker({
       map: this.googleMap,
       position: { lat, lng },
@@ -21,7 +35,10 @@ export class CustomizedMap {
 
     marker.addListener("click", () => {
       const infoWindow = new google.maps.InfoWindow({
-        content: "some trashcan info for you",
+        content: `<button onclick="window.gmap.clickAction(${marker
+          .getPosition()
+          .lat()},${marker.getPosition().lng()})">Click me</button>
+        `,
       });
 
       infoWindow.open(this.googleMap, marker);
