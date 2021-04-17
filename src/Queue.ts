@@ -2,29 +2,32 @@ export interface IQueue<T> {
   enqueue(item: T): void;
   dequeue(): T;
   size(): number;
+  getStore(): T[];
 }
 
 export class Queue<T> implements IQueue<T> {
   private _store: T[] = [];
 
-  constructor(private capacity: number = 5) {}
+  constructor(private capacity: number = 5, store: T[]) {
+    this._store = store;
+  }
 
   enqueue(item: T): void {
     if (this.size() === this.capacity) {
       throw new Error("Queue has reached limit of " + this.capacity);
     }
-    this.store.push(item);
+    this._store.push(item);
   }
 
   dequeue(): T {
-    return this.store.shift();
+    return this._store.shift();
   }
 
   size(): number {
-    return this.store.length;
+    return this._store.length;
   }
 
-  get store() {
+  getStore(): T[] {
     return this._store;
   }
 }

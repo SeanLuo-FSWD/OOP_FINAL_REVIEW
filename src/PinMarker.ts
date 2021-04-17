@@ -4,8 +4,8 @@ import { GeoFeatures } from "./interfaces";
 export class PinMarker {
   jsonData: GeoFeatures;
   queue: IQueue<any>;
-  constructor(geoCoord: GeoFeatures) {
+  constructor(geoCoord: GeoFeatures, capacity: number, store: any[]) {
     this.jsonData = geoCoord;
-    this.queue = new Queue();
+    this.queue = new Queue(capacity, store);
   }
 }

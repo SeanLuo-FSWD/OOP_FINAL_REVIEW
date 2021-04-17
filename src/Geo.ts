@@ -8,8 +8,7 @@ export class Geo {
     "https://gis.burnaby.ca/arcgis/rest/services/OpenData/OpenData3/MapServer/2/query?where=1%3D1&outFields=SHAPE&outSR=4326&f=json";
 
   private constructor(jsonData) {
-    this.geometryList["jsonData"] = jsonData;
-    // this.geometryList["queue"] = new Queue();
+    this.geometryList = jsonData;
   }
 
   static build(): any {
