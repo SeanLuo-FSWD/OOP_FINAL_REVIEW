@@ -1,8 +1,7 @@
-import { Person } from "./Person";
-import { gmap } from "./index";
+import { gmap, PinMarkerList } from "./index";
+import { PinMarker } from "./PinMarker";
 
 class Calculator {
-  static _person: Person;
   private static squareRoot(num) {
     return Math.sqrt(num);
   }
@@ -21,8 +20,8 @@ class Calculator {
     //   const person_lng = Calculator._person.getMarker().getPosition().lng();
     //   const person_lat = Calculator._person.getMarker().getPosition().lat();
 
-    const person_lng = gmap.person.getMarker().getPosition().lng();
-    const person_lat = gmap.person.getMarker().getPosition().lat();
+    const person_lng = gmap.getPerson().getMarker().getPosition().lng();
+    const person_lat = gmap.getPerson().getMarker().getPosition().lat();
 
     const c_lng = c.getPosition().lng();
     const c_lat = c.getPosition().lat();
@@ -49,16 +48,49 @@ class Calculator {
     return c_distance < n_distance ? c : n;
   }
 
-  static findClosest(
-    markerList: google.maps.Marker[],
-    person: Person
-  ): google.maps.Marker {
-    Calculator._person = person;
+  static findClosest(markerList: google.maps.Marker[]): google.maps.Marker {
     return markerList.reduce(Calculator.distanceReducer);
   }
 
-  private static waitingReducer(c, n) {}
-  static findLeastWait() {}
+  // Find the smallest possible queue
+  private static waitingReducer(c, n) {
+    return c.queue.size() <= n.queue.size() ? c : n;
+  }
+
+  static findLeastWait(markerList: google.maps.Marker[]) {
+    const marker = PinMarkerList.reduce(Calculator.waitingReducer);
+    if (marker.queue.size() == marker.queue.getCapacity()) {
+      window.alert("all queues maxed out, please dequeue first");
+    } else {
+      const smallest_queue = marker.queue.size();
+
+      let smallest_queue_PinMarkerList: PinMarker[] = [];
+
+      // Get all PinMarker that have the smallest queue
+      PinMarkerList.forEach((m) => {
+        if (m.queue.size() == smallest_queue) {
+          smallest_queue_PinMarkerList.push(m);
+        }
+      });
+
+      let smallest_queue_markerList: google.maps.Marker[] = [];
+      // Get the corresponding google marker as a list
+      smallest_queue_PinMarkerList.forEach((pm) => {
+        markerList.forEach((m) => {
+          if (
+            pm.jsonData.geometry.x == m.getPosition().lng() &&
+            pm.jsonData.geometry.y == m.getPosition().lat()
+          ) {
+            smallest_queue_markerList.push(m);
+          }
+        });
+      });
+
+      return smallest_queue_markerList;
+    }
+
+    return;
+  }
 }
 
 export { Calculator };

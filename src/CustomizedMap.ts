@@ -6,7 +6,7 @@ import { Calculator } from "./Calculator";
 export class CustomizedMap {
   private googleMap: google.maps.Map;
   private markerList: google.maps.Marker[] = [];
-  person: Person | null;
+  private person: Person | null;
 
   constructor(divId: string) {
     this.googleMap = new google.maps.Map(document.getElementById(divId), {
@@ -18,7 +18,7 @@ export class CustomizedMap {
     });
   }
 
-  private joinAction(lat, lng) {
+  private joinAction(lat, lng, callback) {
     if (this.person != null) {
       this.markerList.forEach((marker) => {
         if (
@@ -30,17 +30,27 @@ export class CustomizedMap {
           marker = null;
 
           // Add the new patient to the PinMarker and add to map
-          PinMarkerList.forEach((pin_marker) => {
+          for (let i = 0; i < PinMarkerList.length; i++) {
             if (
-              pin_marker.jsonData.geometry.y == lat &&
-              pin_marker.jsonData.geometry.x == lng
+              PinMarkerList[i].jsonData.geometry.y == lat &&
+              PinMarkerList[i].jsonData.geometry.x == lng
             ) {
-              pin_marker.queue.enqueue(this.person.getName());
-              this.addPin(pin_marker, true);
-              this.person.getMarker().setMap(null);
-              // this.person = null;
+              let boundCallback = callback.bind(this);
+              boundCallback(PinMarkerList[i]);
+              break;
             }
-          });
+          }
+          // PinMarkerList.forEach((pin_marker) => {
+          //   if (
+          //     pin_marker.jsonData.geometry.y == lat &&
+          //     pin_marker.jsonData.geometry.x == lng
+          //   ) {
+          //     pin_marker.queue.enqueue(this.person.getName());
+          //     this.addPin(pin_marker, true);
+          //     this.person.getMarker().setMap(null);
+          //     // this.person = null;
+          //   }
+          // });
         }
       });
     } else {
@@ -48,14 +58,21 @@ export class CustomizedMap {
     }
   }
 
+  getPerson() {
+    return this.person;
+  }
+
   autojoin() {
+    console.log("autojoin person");
+
     console.log(this.person);
 
     if (this.person != null) {
-      const closest_marker = Calculator.findClosest(
-        this.markerList,
-        this.person
-      );
+      // 1. Find list of places with least wait
+      const least_wait_markers = Calculator.findLeastWait(this.markerList);
+
+      // 2. Use the found list above, find the closest
+      const closest_marker = Calculator.findClosest(least_wait_markers);
 
       console.log("autojoin");
       console.log(closest_marker.getPosition().lat());
@@ -63,7 +80,8 @@ export class CustomizedMap {
 
       this.joinAction(
         closest_marker.getPosition().lat(),
-        closest_marker.getPosition().lng()
+        closest_marker.getPosition().lng(),
+        this.enqueue
       );
     } else {
       window.alert("add a person first");
@@ -98,6 +116,13 @@ export class CustomizedMap {
     });
   }
 
+  enqueue(pin_marker: PinMarker) {
+    const person_name = this.person.getName();
+    pin_marker.queue.enqueue(person_name);
+    this.addPin(pin_marker, true);
+    this.person.getMarker().setMap(null);
+  }
+
   addPin(pin_marker: PinMarker, selected = false): void {
     const { y: lat, x: lng } = pin_marker.jsonData.geometry;
     let marker: google.maps.Marker;
@@ -113,8 +138,6 @@ export class CustomizedMap {
         position: { lat, lng },
         icon: {
           url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-          // url:
-          // "https://atlas.wiki.fextralife.com/file/Atlas/cooked_fish_meat_consumables_atlas_mmo_wiki_guide.png",
         },
       });
     } else {
@@ -136,9 +159,18 @@ export class CustomizedMap {
       const infoWindow = new google.maps.InfoWindow({
         content: `
         <ul>${queue_list_str}</ul>
+        <div style="display:flex">
         <button onclick="window.gmap.joinAction(${marker
           .getPosition()
-          .lat()},${marker.getPosition().lng()})">Join here</button>
+          .lat()},${marker.getPosition().lng()}, 
+          window.gmap.enqueue
+        )">Join here</button>
+        <button onclick="window.gmap.joinAction(${marker
+          .getPosition()
+          .lat()},${marker.getPosition().lng()}, 
+          window.gmap.dequeue
+        )">Dequeue</button>
+        </div>
           <p>Latitude: ${marker.getPosition().lat()}</p>
           <p>Longitude: ${marker.getPosition().lng()}</p>
         `,
@@ -146,5 +178,10 @@ export class CustomizedMap {
 
       infoWindow.open(this.googleMap, marker);
     });
+  }
+
+  dequeue(pin_marker: PinMarker): void {
+    pin_marker.queue.dequeue();
+    this.addPin(pin_marker);
   }
 }

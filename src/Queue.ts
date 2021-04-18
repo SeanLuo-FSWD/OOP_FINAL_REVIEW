@@ -3,6 +3,7 @@ export interface IQueue<T> {
   dequeue(): T;
   size(): number;
   getStore(): T[];
+  getCapacity(): number;
 }
 
 export class Queue<T> implements IQueue<T> {
@@ -29,5 +30,9 @@ export class Queue<T> implements IQueue<T> {
 
   getStore(): T[] {
     return this._store;
+  }
+
+  getCapacity() {
+    return this.capacity;
   }
 }
