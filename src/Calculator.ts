@@ -1,7 +1,8 @@
 import { Person } from "./Person";
+import { gmap } from "./index";
 
 class Calculator {
-  private static _person: Person;
+  static _person: Person;
   private static squareRoot(num) {
     return Math.sqrt(num);
   }
@@ -16,9 +17,12 @@ class Calculator {
     );
   }
 
-  private static reducer(c, n) {
-    const person_lng = Calculator._person.getMarker().getPosition().lng();
-    const person_lat = Calculator._person.getMarker().getPosition().lat();
+  private static distanceReducer(c, n) {
+    //   const person_lng = Calculator._person.getMarker().getPosition().lng();
+    //   const person_lat = Calculator._person.getMarker().getPosition().lat();
+
+    const person_lng = gmap.person.getMarker().getPosition().lng();
+    const person_lat = gmap.person.getMarker().getPosition().lat();
 
     const c_lng = c.getPosition().lng();
     const c_lat = c.getPosition().lat();
@@ -42,16 +46,6 @@ class Calculator {
       n_lat
     );
 
-    console.log("///////");
-
-    console.log(`c_lng ${c_lng} | c_lat ${c_lat}`);
-    console.log(`c_distance ${c_distance}`);
-    console.log("----");
-
-    console.log(`n_lng ${n_lng} | n_lat ${n_lat}`);
-    console.log(`n_distance ${n_distance}`);
-    console.log("///////");
-
     return c_distance < n_distance ? c : n;
   }
 
@@ -60,8 +54,11 @@ class Calculator {
     person: Person
   ): google.maps.Marker {
     Calculator._person = person;
-    return markerList.reduce(Calculator.reducer);
+    return markerList.reduce(Calculator.distanceReducer);
   }
+
+  private static waitingReducer(c, n) {}
+  static findLeastWait() {}
 }
 
 export { Calculator };

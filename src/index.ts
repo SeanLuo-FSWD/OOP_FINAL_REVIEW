@@ -4,9 +4,9 @@ import { PinMarker } from "./PinMarker";
 import faker from "faker";
 
 let PinMarkerList: PinMarker[] = [];
-
+let gmap: CustomizedMap;
 window["initMaps"] = async function () {
-  const gmap = new CustomizedMap("map");
+  gmap = new CustomizedMap("map");
   window["gmap"] = gmap;
   const geoObj: Geo = await Geo.build();
   // geoObj.geometryList.forEach((geoCoord) => gmap.addPin(geoCoord));
@@ -28,4 +28,4 @@ window["initMaps"] = async function () {
   });
 };
 
-export { PinMarkerList };
+export { PinMarkerList, gmap };

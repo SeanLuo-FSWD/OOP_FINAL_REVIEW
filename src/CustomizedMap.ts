@@ -6,7 +6,7 @@ import { Calculator } from "./Calculator";
 export class CustomizedMap {
   private googleMap: google.maps.Map;
   private markerList: google.maps.Marker[] = [];
-  private person: Person | null;
+  person: Person | null;
 
   constructor(divId: string) {
     this.googleMap = new google.maps.Map(document.getElementById(divId), {
