@@ -7,6 +7,7 @@ export class CustomizedMap {
   private googleMap: google.maps.Map;
   private markerList: google.maps.Marker[] = [];
   private person: Person | null;
+  private infoWindowList: google.maps.InfoWindow[] = [];
 
   constructor(divId: string) {
     this.googleMap = new google.maps.Map(document.getElementById(divId), {
@@ -19,38 +20,26 @@ export class CustomizedMap {
   }
 
   private joinAction(lat, lng, callback) {
+    console.log(
+      "join Action called, call back is either enqueue() or dequeue()"
+    );
+
     if (this.person != null) {
       this.markerList.forEach((marker) => {
         if (
           marker.getPosition().lat() == lat &&
           marker.getPosition().lng() == lng
         ) {
-          // remove the matched google marker, to be re-added with updated queue
-          marker.setMap(null);
-          marker = null;
-
-          // Add the new patient to the PinMarker and add to map
           for (let i = 0; i < PinMarkerList.length; i++) {
             if (
               PinMarkerList[i].jsonData.geometry.y == lat &&
               PinMarkerList[i].jsonData.geometry.x == lng
             ) {
               let boundCallback = callback.bind(this);
-              boundCallback(PinMarkerList[i]);
+              boundCallback(PinMarkerList[i], marker);
               break;
             }
           }
-          // PinMarkerList.forEach((pin_marker) => {
-          //   if (
-          //     pin_marker.jsonData.geometry.y == lat &&
-          //     pin_marker.jsonData.geometry.x == lng
-          //   ) {
-          //     pin_marker.queue.enqueue(this.person.getName());
-          //     this.addPin(pin_marker, true);
-          //     this.person.getMarker().setMap(null);
-          //     // this.person = null;
-          //   }
-          // });
         }
       });
     } else {
@@ -58,25 +47,63 @@ export class CustomizedMap {
     }
   }
 
-  getPerson() {
-    return this.person;
+  addInfoWindow(pin_marker: PinMarker, marker: google.maps.Marker) {
+    let queue_list_str = "";
+
+    pin_marker.queue.getStore().forEach((person) => {
+      queue_list_str += `<li>${person}</li>`;
+    });
+
+    const infoWindow = new google.maps.InfoWindow({
+      content: `
+        <h4>Queue List</h4>
+        <ul>${queue_list_str}</ul>
+        <div style="display:flex">
+        <button onclick="window.gmap.joinAction(${marker
+          .getPosition()
+          .lat()},${marker.getPosition().lng()}, 
+          window.gmap.enqueue
+        )">Join here</button>
+        <button onclick="window.gmap.joinAction(${marker
+          .getPosition()
+          .lat()},${marker.getPosition().lng()}, 
+          window.gmap.dequeue
+        )">Dequeue</button>
+        </div>
+          <p>Latitude: ${marker.getPosition().lat()}</p>
+          <p>Longitude: ${marker.getPosition().lng()}</p>
+        `,
+    });
+
+    this.infoWindowList.push(infoWindow);
+
+    marker.addListener("click", () => {
+      infoWindow.open(this.googleMap, marker);
+    });
+    marker["info_window"] = infoWindow;
+  }
+
+  addPin(pin_marker: PinMarker, selected = false): void {
+    const { y: lat, x: lng } = pin_marker.jsonData.geometry;
+    let marker: google.maps.Marker;
+
+    marker = new google.maps.Marker({
+      map: this.googleMap,
+      position: { lat, lng },
+    });
+
+    this.addInfoWindow(pin_marker, marker);
+
+    this.markerList.push(marker);
   }
 
   autojoin() {
-    console.log("autojoin person");
-
-    console.log(this.person);
-
     if (this.person != null) {
       // 1. Find list of places with least wait
       const least_wait_markers = Calculator.findLeastWait(this.markerList);
 
       // 2. Use the found list above, find the closest
       const closest_marker = Calculator.findClosest(least_wait_markers);
-
-      console.log("autojoin");
-      console.log(closest_marker.getPosition().lat());
-      console.log(closest_marker.getPosition().lng());
 
       this.joinAction(
         closest_marker.getPosition().lat(),
@@ -86,6 +113,53 @@ export class CustomizedMap {
     } else {
       window.alert("add a person first");
     }
+  }
+
+  dequeue(pin_marker: PinMarker, marker: google.maps.Marker): void {
+    console.log("dequeue called");
+    pin_marker.queue.dequeue();
+
+    this.editInfoWindow(pin_marker, marker);
+  }
+
+  editInfoWindow(pin_marker: PinMarker, marker: google.maps.Marker): void {
+    let queue_list_str = "";
+
+    pin_marker.queue.getStore().forEach((person) => {
+      queue_list_str += `<li>${person}</li>`;
+    });
+    marker["info_window"].setContent(`
+        <h4>Queue List</h4>
+        <ul>${queue_list_str}</ul>
+        <div style="display:flex">
+        <button onclick="window.gmap.joinAction(${marker
+          .getPosition()
+          .lat()},${marker.getPosition().lng()}, 
+          window.gmap.enqueue
+        )">Join here</button>
+        <button onclick="window.gmap.joinAction(${marker
+          .getPosition()
+          .lat()},${marker.getPosition().lng()}, 
+          window.gmap.dequeue
+        )">Dequeue</button>
+        </div>
+          <p>Latitude: ${marker.getPosition().lat()}</p>
+          <p>Longitude: ${marker.getPosition().lng()}</p>
+        `);
+  }
+
+  enqueue(pin_marker: PinMarker, marker: google.maps.Marker): void {
+    const person_name = this.person.getName();
+    pin_marker.queue.enqueue(person_name);
+    marker.setIcon("http://maps.google.com/mapfiles/ms/icons/blue-dot.png");
+    // this.addPin(pin_marker, true);
+    // this.addInfoWindow(pin_marker, marker);
+    this.editInfoWindow(pin_marker, marker);
+    this.person.getMarker().setMap(null);
+  }
+
+  getPerson() {
+    return this.person;
   }
 
   newPatient(name: string): void {
@@ -104,8 +178,6 @@ export class CustomizedMap {
     this.person = new Person(name, marker);
 
     this.person.getMarker().addListener("click", () => {
-      console.log("draggable clicked");
-
       const infoWindow = new google.maps.InfoWindow({
         content: `
             <p>I am ${this.person.getName()}</p>
@@ -114,74 +186,5 @@ export class CustomizedMap {
 
       infoWindow.open(this.googleMap, this.person.getMarker());
     });
-  }
-
-  enqueue(pin_marker: PinMarker) {
-    const person_name = this.person.getName();
-    pin_marker.queue.enqueue(person_name);
-    this.addPin(pin_marker, true);
-    this.person.getMarker().setMap(null);
-  }
-
-  addPin(pin_marker: PinMarker, selected = false): void {
-    const { y: lat, x: lng } = pin_marker.jsonData.geometry;
-    let marker: google.maps.Marker;
-
-    if (selected) {
-      console.log("are you selected?: lat");
-      console.log(lat);
-      console.log("longitude");
-      console.log(lng);
-
-      marker = new google.maps.Marker({
-        map: this.googleMap,
-        position: { lat, lng },
-        icon: {
-          url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-        },
-      });
-    } else {
-      marker = new google.maps.Marker({
-        map: this.googleMap,
-        position: { lat, lng },
-      });
-    }
-
-    this.markerList.push(marker);
-
-    let queue_list_str = "";
-
-    pin_marker.queue.getStore().forEach((patient) => {
-      queue_list_str += `<li>${patient}</li>`;
-    });
-
-    marker.addListener("click", () => {
-      const infoWindow = new google.maps.InfoWindow({
-        content: `
-        <ul>${queue_list_str}</ul>
-        <div style="display:flex">
-        <button onclick="window.gmap.joinAction(${marker
-          .getPosition()
-          .lat()},${marker.getPosition().lng()}, 
-          window.gmap.enqueue
-        )">Join here</button>
-        <button onclick="window.gmap.joinAction(${marker
-          .getPosition()
-          .lat()},${marker.getPosition().lng()}, 
-          window.gmap.dequeue
-        )">Dequeue</button>
-        </div>
-          <p>Latitude: ${marker.getPosition().lat()}</p>
-          <p>Longitude: ${marker.getPosition().lng()}</p>
-        `,
-      });
-
-      infoWindow.open(this.googleMap, marker);
-    });
-  }
-
-  dequeue(pin_marker: PinMarker): void {
-    pin_marker.queue.dequeue();
-    this.addPin(pin_marker);
   }
 }

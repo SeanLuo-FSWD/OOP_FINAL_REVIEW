@@ -21,6 +21,7 @@ export class Queue<T> implements IQueue<T> {
   }
 
   dequeue(): T {
+    console.log("dequeue in pin_marker obj");
     return this._store.shift();
   }
 
