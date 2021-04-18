@@ -5,3 +5,8 @@ export interface GeoFeatures {
     y: number;
   };
 }
+
+export interface iPerson {
+  name: string;
+  marker: google.maps.Marker;
+}

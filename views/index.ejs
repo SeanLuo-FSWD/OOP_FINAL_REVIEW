@@ -4,10 +4,15 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script
+      src="https://code.jquery.com/jquery-3.6.0.min.js"
+      integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+      crossorigin="anonymous"
+    ></script>
     <title>Trash it</title>
     <style>
       #map {
-        height: 400px;
+        height: 600px;
         width: 100%;
       }
     </style>
@@ -21,9 +26,37 @@
       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBTAzfwvtVStxFrfmQHYwIIn_qnYgRdSps&callback=initMaps"
     ></script>
     <div id="map"></div>
-    <div class="interact">
-      <form id="add_person" action="" method="post"></form>
-      <button>Add draggable patient</button>
+    <div
+      class="interact"
+      style="display: flex; justify-content: space-around; margin-top: 2em"
+    >
+      <div class="action">
+        <form id="add_person" style="display: flex">
+          <input type="text" id="new_user" placeholder="enter name" />
+          <button type="submit">Add draggable person</button>
+        </form>
+      </div>
+      <div class="action">
+        <button id="auto_join">Automatic join</button>
+        <p>Find by least waiting first, then by closest</p>
+      </div>
     </div>
+
+    <script>
+      document
+        .getElementById("add_person")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          console.log($("#new_user").val());
+          window.gmap.newPatient($("#new_user").val());
+        });
+
+      document
+        .getElementById("auto_join")
+        .addEventListener("click", function () {
+          console.log("clicked on auto_join");
+          window.gmap.autojoin();
+        });
+    </script>
   </body>
 </html>

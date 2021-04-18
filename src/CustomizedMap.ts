@@ -1,11 +1,12 @@
-import { GeoFeatures } from "./interfaces";
 import { PinMarker } from "./PinMarker";
 import { PinMarkerList } from "./index";
+import { Person } from "./Person";
+import { Calculator } from "./Calculator";
 
 export class CustomizedMap {
   private googleMap: google.maps.Map;
   private markerList: google.maps.Marker[] = [];
-  private patient: string;
+  private person: Person | null;
 
   constructor(divId: string) {
     this.googleMap = new google.maps.Map(document.getElementById(divId), {
@@ -17,51 +18,111 @@ export class CustomizedMap {
     });
   }
 
-  joinAction(lat, lng) {
-    // remove the actual google marker, to be re-added with new content
-    this.markerList.forEach((marker) => {
-      if (
-        marker.getPosition().lat() == lat &&
-        marker.getPosition().lng() == lng
-      ) {
-        marker.setMap(null);
-        marker = null;
-      }
-    });
+  private joinAction(lat, lng) {
+    if (this.person != null) {
+      this.markerList.forEach((marker) => {
+        if (
+          marker.getPosition().lat() == lat &&
+          marker.getPosition().lng() == lng
+        ) {
+          // remove the matched google marker, to be re-added with updated queue
+          marker.setMap(null);
+          marker = null;
 
-    // Add the new patient to the PinMarker and add to map
-    PinMarkerList.forEach((pin_marker) => {
-      if (
-        pin_marker.jsonData.geometry.y == lat &&
-        pin_marker.jsonData.geometry.x == lng
-      ) {
-        pin_marker.queue.enqueue("derek");
-        this.addPin(pin_marker);
-      }
-    });
+          // Add the new patient to the PinMarker and add to map
+          PinMarkerList.forEach((pin_marker) => {
+            if (
+              pin_marker.jsonData.geometry.y == lat &&
+              pin_marker.jsonData.geometry.x == lng
+            ) {
+              pin_marker.queue.enqueue(this.person.getName());
+              this.addPin(pin_marker, true);
+              this.person.getMarker().setMap(null);
+              // this.person = null;
+            }
+          });
+        }
+      });
+    } else {
+      window.alert("add a person first");
+    }
+  }
+
+  autojoin() {
+    console.log(this.person);
+
+    if (this.person != null) {
+      const closest_marker = Calculator.findClosest(
+        this.markerList,
+        this.person
+      );
+
+      console.log("autojoin");
+      console.log(closest_marker.getPosition().lat());
+      console.log(closest_marker.getPosition().lng());
+
+      this.joinAction(
+        closest_marker.getPosition().lat(),
+        closest_marker.getPosition().lng()
+      );
+    } else {
+      window.alert("add a person first");
+    }
   }
 
   newPatient(name: string): void {
-    this.patient = name;
-
     // add the new patient in center of map
-    const lng = -122.9658755;
     const lat = 49.2393853;
+    const lng = -122.9658755;
 
     let marker = new google.maps.Marker({
       map: this.googleMap,
       position: { lat, lng },
       icon: "http://maps.google.com/mapfiles/kml/shapes/man.png",
+      draggable: true,
+    });
+
+    // assign to person
+    this.person = new Person(name, marker);
+
+    this.person.getMarker().addListener("click", () => {
+      console.log("draggable clicked");
+
+      const infoWindow = new google.maps.InfoWindow({
+        content: `
+            <p>I am ${this.person.getName()}</p>
+        `,
+      });
+
+      infoWindow.open(this.googleMap, this.person.getMarker());
     });
   }
 
-  addPin(pin_marker: PinMarker): void {
+  addPin(pin_marker: PinMarker, selected = false): void {
     const { y: lat, x: lng } = pin_marker.jsonData.geometry;
+    let marker: google.maps.Marker;
 
-    let marker = new google.maps.Marker({
-      map: this.googleMap,
-      position: { lat, lng },
-    });
+    if (selected) {
+      console.log("are you selected?: lat");
+      console.log(lat);
+      console.log("longitude");
+      console.log(lng);
+
+      marker = new google.maps.Marker({
+        map: this.googleMap,
+        position: { lat, lng },
+        icon: {
+          url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+          // url:
+          // "https://atlas.wiki.fextralife.com/file/Atlas/cooked_fish_meat_consumables_atlas_mmo_wiki_guide.png",
+        },
+      });
+    } else {
+      marker = new google.maps.Marker({
+        map: this.googleMap,
+        position: { lat, lng },
+      });
+    }
 
     this.markerList.push(marker);
 
@@ -78,6 +139,8 @@ export class CustomizedMap {
         <button onclick="window.gmap.joinAction(${marker
           .getPosition()
           .lat()},${marker.getPosition().lng()})">Join here</button>
+          <p>Latitude: ${marker.getPosition().lat()}</p>
+          <p>Longitude: ${marker.getPosition().lng()}</p>
         `,
       });
 
