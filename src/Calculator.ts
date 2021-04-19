@@ -1,5 +1,5 @@
-import { gmap, PinMarkerList } from "./index";
-import { PinMarker } from "./PinMarker";
+import { gmap } from "./index";
+import { Pin } from "./Pin";
 
 class Calculator {
   private static squareRoot(num) {
@@ -16,18 +16,15 @@ class Calculator {
     );
   }
 
-  private static distanceReducer(c, n) {
-    //   const person_lng = Calculator._person.getMarker().getPosition().lng();
-    //   const person_lat = Calculator._person.getMarker().getPosition().lat();
-
+  private static distanceReducer(c: Pin, n: Pin) {
     const person_lng = gmap.getPerson().getMarker().getPosition().lng();
     const person_lat = gmap.getPerson().getMarker().getPosition().lat();
 
-    const c_lng = c.getPosition().lng();
-    const c_lat = c.getPosition().lat();
+    const c_lng = c.marker.getPosition().lng();
+    const c_lat = c.marker.getPosition().lat();
 
-    const n_lng = n.getPosition().lng();
-    const n_lat = n.getPosition().lat();
+    const n_lng = n.marker.getPosition().lng();
+    const n_lat = n.marker.getPosition().lat();
 
     // distance for current marker
     const c_distance = Calculator.distance(
@@ -48,8 +45,8 @@ class Calculator {
     return c_distance < n_distance ? c : n;
   }
 
-  static findClosest(markerList: google.maps.Marker[]): google.maps.Marker {
-    return markerList.reduce(Calculator.distanceReducer);
+  static findClosest(pinList: Pin[]): Pin {
+    return pinList.reduce(Calculator.distanceReducer);
   }
 
   // Find the smallest possible queue
@@ -57,36 +54,24 @@ class Calculator {
     return c.queue.size() <= n.queue.size() ? c : n;
   }
 
-  static findLeastWait(markerList: google.maps.Marker[]) {
-    const marker = PinMarkerList.reduce(Calculator.waitingReducer);
+  // markerList: google.maps.Marker[];
+  static findLeastWait(pinList: Pin[]) {
+    const marker = pinList.reduce(Calculator.waitingReducer);
     if (marker.queue.size() == marker.queue.getCapacity()) {
       window.alert("all queues maxed out, please dequeue first");
     } else {
       const smallest_queue = marker.queue.size();
 
-      let smallest_queue_PinMarkerList: PinMarker[] = [];
+      let smallest_queue_pinList: Pin[] = [];
 
-      // Get all PinMarker that have the smallest queue
-      PinMarkerList.forEach((m) => {
+      // Get all Pin that have the smallest queue
+      pinList.forEach((m) => {
         if (m.queue.size() == smallest_queue) {
-          smallest_queue_PinMarkerList.push(m);
+          smallest_queue_pinList.push(m);
         }
       });
 
-      let smallest_queue_markerList: google.maps.Marker[] = [];
-      // Get the corresponding google marker as a list
-      smallest_queue_PinMarkerList.forEach((pm) => {
-        markerList.forEach((m) => {
-          if (
-            pm.jsonData.geometry.x == m.getPosition().lng() &&
-            pm.jsonData.geometry.y == m.getPosition().lat()
-          ) {
-            smallest_queue_markerList.push(m);
-          }
-        });
-      });
-
-      return smallest_queue_markerList;
+      return smallest_queue_pinList;
     }
 
     return;

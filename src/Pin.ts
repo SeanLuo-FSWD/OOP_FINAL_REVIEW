@@ -1,11 +1,11 @@
 import { IQueue, Queue } from "./Queue";
 import { GeoFeatures } from "./interfaces";
 
-export class PinMarker {
-  jsonData: GeoFeatures;
+export class Pin {
+  marker: google.maps.Marker;
   queue: IQueue<any>;
-  constructor(geoCoord: GeoFeatures, capacity: number, store: any[]) {
-    this.jsonData = geoCoord;
+  constructor(marker: google.maps.Marker, capacity: number, store: any[]) {
+    this.marker = marker;
     this.queue = new Queue(capacity, store);
   }
 }
